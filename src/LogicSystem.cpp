@@ -1,5 +1,8 @@
 #include "LogicSystem.h"
 #include "HttpConnection.h"
+#include <spdlog/spdlog.h>
+#include <nlohmann/json.hpp>
+
 //前置声明解决互引用问题
 
 //注册传来的路由请求
@@ -12,9 +15,17 @@ void LogicSystem::RegGet(std::string url, HttpHandler handler)
     _get_handlers.insert(make_pair(url, handler));
 }
 
-void LogicSystem::RgePost(std::string url, HttpHandler handler)
+void LogicSystem::RegPost(std::string url, HttpHandler handler)
 {
     _post_handlers.insert(make_pair(url, handler));
+}
+
+bool LogicSystem::HandlePost(std::string path, std::shared_ptr<HttpConnection> con)
+{
+    if(_post_handlers.find(path)==_post_handlers.end())
+        return false;
+    _post_handlers[path](con);
+    return true;
 }
 
 
@@ -49,6 +60,68 @@ LogicSystem::LogicSystem() {
             beast::ostream(connection->_response.body()) << "param" << i << " key is " << elem.first;
             beast::ostream(connection->_response.body()) << ", " << " value is " << elem.second << std::endl;
         }
+        });
+
+    /*注册一个 POST 接口 `/get_varifycode`，接收 JSON 请求体，解析邮箱，返回 JSON 应答
+     *格式请求头GET 请求体*/
+    RegPost("/get_varifycode", [](std::shared_ptr<HttpConnection> connection) {
+        auto body_str = boost::beast::buffers_to_string(connection->_request.body().data());
+        spdlog::info("receive body is {}", body_str);
+
+        auto& res = connection->_response;
+        res.set(http::field::content_type, "application/json");
+
+        // 统一错误应答
+        auto send_error = [&res](int code, http::status st) {
+            //清空旧缓冲区！
+            //res.body().consume(res.body().size());
+
+            nlohmann::json root{ {"error", code} };
+#ifdef _DEBUG
+            beast::ostream(res.body()) << root.dump(4);
+#else
+            beast::ostream(res.body()) << root.dump();
+#endif
+            res.result(st);
+            res.prepare_payload();
+            };
+
+        nlohmann::json src_root;
+        try
+        {
+            src_root = nlohmann::json::parse(body_str);
+            //判断 json 对象里有没有叫 email 的 key
+            //.is_string() 判断这个值是不是字符串类型
+            if (!src_root.contains("email") || !src_root["email"].is_string()) {
+                spdlog::warn("bad request body: {}", body_str);
+                send_error(ErrorCodes::Error_Json, http::status::bad_request);
+                return;
+            }
+        }
+        catch (const nlohmann::json::parse_error& e)
+        {
+            spdlog::error("json error: {}", e.what());
+            send_error(ErrorCodes::Error_Json, http::status::bad_request);
+            return;
+        }
+        //把这个 json 节点解析输出成 C++ 的std::string类型
+        std::string email = src_root["email"].get<std::string>();
+        spdlog::info("email is {}", email);
+
+        // ✅ 成功分支同样先清空body
+        res.body().consume(res.body().size());
+
+        nlohmann::json root;//root现在为空
+        //向 json 对象增加键值对
+        root["error"] = ErrorCodes::Success;
+        root["email"] = email;
+#ifdef _DEBUG
+        beast::ostream(res.body()) << root.dump(4);
+#else
+        beast::ostream(res.body()) << root.dump();
+#endif
+        res.result(http::status::ok);
+        res.prepare_payload();
         });
 
 }

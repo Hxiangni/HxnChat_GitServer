@@ -4,6 +4,7 @@
 #include <map>
 #include "const.h"
 
+
 class HttpConnection;//前置声明，代表一条HTTP客户端连接对象
 
 /*std::function<T> 是 C++ 标准库的函数包装器
@@ -30,7 +31,8 @@ public:
     ~LogicSystem();
     bool HandleGet(std::string, std::shared_ptr<HttpConnection>);
     void RegGet(std::string, HttpHandler handler);
-    void RgePost(std::string, HttpHandler handler);
+    void RegPost(std::string, HttpHandler handler);
+    bool HandlePost(std::string, std::shared_ptr<HttpConnection>);
 private:
     LogicSystem();
     //HttpHandler是一个指定类型的可调用对象

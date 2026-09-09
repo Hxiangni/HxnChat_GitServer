@@ -25,6 +25,7 @@ private:
 	beast::flat_buffer _buffer{ 8192 };//用来接受数据
 
 	//Beast 内置三种标准 Body、长度未知、流式、大体积数据文件、大页面、分段返回），分段缓冲区，自动扩容
+	//不是直接存放原始二进制报文，而是结构化的 C++ 对象，把 HTTP 报文解析拆成：请求头 / 响应头 + body 主体。
 	http::request<http::dynamic_body> _request;//客户端发给服务器的 HTTP 请求
 	http::response<http::dynamic_body> _response;//服务器回复给客户端的 HTTP 响应
 

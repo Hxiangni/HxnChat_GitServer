@@ -38,7 +38,8 @@ find_package(nlohmann_json REQUIRED)
 #   find_package(Boost CONFIG REQUIRED COMPONENTS filesystem thread)
 #   并链接 Boost::filesystem / Boost::thread
 find_package(Boost CONFIG REQUIRED)
-
+find_package(spdlog REQUIRED)
+find_package(gRPC REQUIRED)
 # 将源代码添加到此项目的可执行文件。
 add_executable (${TARGET}   "src/const.h" "src/CServer.h" "src/HttpConnection.h" "src/LogicSystem.h" "src/Singleton.h" "src/CServer.cpp" "src/GitServer.cpp" "src/HttpConnection.cpp" "src/LogicSystem.cpp")
 
@@ -48,6 +49,10 @@ add_executable (${TARGET}   "src/const.h" "src/CServer.h" "src/HttpConnection.h"
 target_link_libraries(${TARGET} 
                         nlohmann_json::nlohmann_json
                         Boost::boost
+                        spdlog::spdlog
+                        gRPC::grpc++
+                        gRPC::grpc
+                        protobuf::libprotobuf
                         )
 
 

@@ -1,7 +1,19 @@
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN //WIN32_LEAN_AND_MEAN 含义：精简 windows.h 头文件。
+#include <windows.h>//windows.h 是 Windows 超级巨大的总头文件，里面会包含巨量很少用的组件（MFC、COM、网络、GDI 等）。
+#endif
+
+#include <spdlog/spdlog.h>
+
 #include "const.h"
 #include "CServer.h"
 int main()
 {
+	// 关键：把控制台输出代码页设置为 UTF‑8
+#ifdef _WIN32
+	SetConsoleOutputCP(65001);
+#endif
+	spdlog::set_level(spdlog::level::trace);
 	try
 	{
 		//字面量数字 8080 强制转换成 unsigned short 无符号短整型，再赋值给 port 变量。

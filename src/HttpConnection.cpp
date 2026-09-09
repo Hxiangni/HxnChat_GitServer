@@ -70,6 +70,26 @@ void HttpConnection::HandleReq() {
 			return;
 		}
 
+		//接口存在也可能出错所以不能在这里定值为ok
+		//_response.result(http::status::ok);失败也会返回true然后被强制修改
+		_response.set(http::field::server, "GateServer");
+		WriteResponse();
+		return;
+	}
+
+	if (_request.method() == http::verb::post) {
+		//Post分枝要不要去掉查询参数呢跟Get一样
+		//PreParseGetParam();//解析 URL 里的路径和 GET 参数
+
+		bool success = LogicSystem::GetInstance()->HandlePost(_request.target(), shared_from_this());
+		if (!success) {
+			_response.result(http::status::not_found);
+			_response.set(http::field::content_type, "text/plain");
+			beast::ostream(_response.body()) << "url not found\r\n";
+			WriteResponse();
+			return;
+		}
+
 		_response.result(http::status::ok);
 		_response.set(http::field::server, "GateServer");
 		WriteResponse();
@@ -78,15 +98,21 @@ void HttpConnection::HandleReq() {
 
 
 }
-
+/*Beast 内部把_response对象序列化成 HTTP 报文字节流。
+* 向操作系统提交异步写任务给内核。
+* 函数立刻返回！不会阻塞等待数据发完。等待ioc
+*只有 TCP 写操作完成之后，才会进入大括号里面的回调代码！
+*/
 void HttpConnection::WriteResponse() {
 	auto self = shared_from_this();
 	_response.content_length(_response.body().size());
 	http::async_write(
-		_socket,
-		_response,
+		_socket,// 往哪个tcp socket写
+		_response,// 要发送的http响应对象
 		[self](beast::error_code ec, std::size_t)
 		{
+			//HTTP 短连接场景常用 `shutdown_send`：我们把响应全部发完之后，关闭写方向，
+			// 发送 FIN 给客户端；之后还可以读完客户端剩余字节。
 			self->_socket.shutdown(tcp::socket::shutdown_send, ec);
 			self->deadline_.cancel();
 		});
