@@ -7,6 +7,7 @@
 
 #include "const.h"
 #include "CServer.h"
+#include "ConfigMgr.h"
 int main()
 {
 	// 关键：把控制台输出代码页设置为 UTF‑8
@@ -16,9 +17,12 @@ int main()
 	spdlog::set_level(spdlog::level::trace);
 	try
 	{
+		ConfigMgr gCfgMgr;
+		std::string gate_port_str = gCfgMgr["GateServer"]["Port"];
+		unsigned short gate_port = atoi(gate_port_str.c_str());
 		//字面量数字 8080 强制转换成 unsigned short 无符号短整型，再赋值给 port 变量。
 		//和unsigned short port=8080;有什么区别？
-		unsigned short port = static_cast<unsigned short>(8080);
+		unsigned short port = gate_port;
 
 
 		/*oost.Asio 的 io_context 有两种构造：

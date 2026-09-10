@@ -34,14 +34,20 @@ find_package(nlohmann_json REQUIRED)
 # Boost：通过 b2 生成的官方 CMake 配置文件（config 模式）查找。
 # Boost_ROOT（环境变量或 CMake 缓存变量）需指向安装前缀:
 #   D:/Library/boost_1_91_0/stage
-# 若需要 filesystem/thread 等组件，改为:
-#   find_package(Boost CONFIG REQUIRED COMPONENTS filesystem thread)
-#   并链接 Boost::filesystem / Boost::thread
-find_package(Boost CONFIG REQUIRED)
+# 需要 filesystem 组件（ConfigMgr 用它获取当前工作目录）：
+# 用 COMPONENTS 声明所需组件，并链接对应的 Boost::<组件名> target
+find_package(Boost CONFIG REQUIRED COMPONENTS filesystem)
 find_package(spdlog REQUIRED)
-find_package(gRPC REQUIRED)
+
+# gRPC 的 CMake 配置依赖 protobuf 提供的目标（protobuf::libprotobuf / protobuf::libprotoc）
+# 必须先加载 protobuf，再加载 gRPC，顺序不能反
+find_package(protobuf CONFIG REQUIRED)
+find_package(gRPC CONFIG REQUIRED)
 # 将源代码添加到此项目的可执行文件。
-add_executable (${TARGET}   "src/const.h" "src/CServer.h" "src/HttpConnection.h" "src/LogicSystem.h" "src/Singleton.h" "src/CServer.cpp" "src/GitServer.cpp" "src/HttpConnection.cpp" "src/LogicSystem.cpp")
+add_executable (${TARGET}   "src/const.h" "src/CServer.h" "src/HttpConnection.h" "src/LogicSystem.h" "src/Singleton.h" "src/CServer.cpp" "src/GitServer.cpp" "src/HttpConnection.cpp" 
+"src/LogicSystem.cpp"
+"message.pb.cc" "message.grpc.pb.cc"
+ "src/VarifyGrpcClient.h" "src/ConfigMgr.h" "src/ConfigMgr.cpp")
 
 #include <boost/beast/http.hpp>
 #include <boost/beast.hpp>
@@ -49,6 +55,7 @@ add_executable (${TARGET}   "src/const.h" "src/CServer.h" "src/HttpConnection.h"
 target_link_libraries(${TARGET} 
                         nlohmann_json::nlohmann_json
                         Boost::boost
+                        Boost::filesystem
                         spdlog::spdlog
                         gRPC::grpc++
                         gRPC::grpc

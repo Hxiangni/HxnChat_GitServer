@@ -2,7 +2,7 @@
 #include "HttpConnection.h"
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
-
+#include "VarifyGrpcClient.h"
 //前置声明解决互引用问题
 
 //注册传来的路由请求
@@ -64,7 +64,7 @@ LogicSystem::LogicSystem() {
 
     /*注册一个 POST 接口 `/get_varifycode`，接收 JSON 请求体，解析邮箱，返回 JSON 应答
      *格式请求头GET 请求体*/
-    RegPost("/get_varifycode", [](std::shared_ptr<HttpConnection> connection) {
+    RegPost("/get_varifycode",  [](std::shared_ptr<HttpConnection> connection) {
         auto body_str = boost::beast::buffers_to_string(connection->_request.body().data());
         spdlog::info("receive body is {}", body_str);
 
@@ -86,7 +86,7 @@ LogicSystem::LogicSystem() {
             res.prepare_payload();
             };
 
-        nlohmann::json src_root;
+        nlohmann::json src_root;//放的是post请求的请求体
         try
         {
             src_root = nlohmann::json::parse(body_str);
@@ -97,6 +97,8 @@ LogicSystem::LogicSystem() {
                 send_error(ErrorCodes::Error_Json, http::status::bad_request);
                 return;
             }
+
+
         }
         catch (const nlohmann::json::parse_error& e)
         {
@@ -106,12 +108,17 @@ LogicSystem::LogicSystem() {
         }
         //把这个 json 节点解析输出成 C++ 的std::string类型
         std::string email = src_root["email"].get<std::string>();
+
+        GetVarifyRsp rsp = VerifyGrpcClient::GetInstance()->GetVarifyCode(email);
+
         spdlog::info("email is {}", email);
 
         // ✅ 成功分支同样先清空body
         res.body().consume(res.body().size());
 
-        nlohmann::json root;//root现在为空
+
+        //构造回复报文的json
+        nlohmann::json root;
         //向 json 对象增加键值对
         root["error"] = ErrorCodes::Success;
         root["email"] = email;
