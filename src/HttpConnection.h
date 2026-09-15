@@ -10,8 +10,13 @@ public:
 	用 tcp::socket&& 右值引用参数时：
 	  不会用移动构造生成临时 的socket，省去一次移动；
 	 但是以后只能传入右值了*/
-	HttpConnection(tcp::socket socket);
+	//HttpConnection(tcp::socket socket);
+
+	//修改为连接池
+	HttpConnection(boost::asio::io_context& ioc); 
+
 	void Start();
+	tcp::socket& GetSocket();
 private:
 	void CheckDeadline();
 	void WriteResponse();

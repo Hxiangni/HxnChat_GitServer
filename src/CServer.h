@@ -26,5 +26,5 @@ private:
      *tcp::socket 没有无参默认构造，但是它有带 executor / io_context的有参构造函数
      *还可以移动构造：接收同类型右值，转移已有socket资源
      拷贝构造：直接删掉，禁止复制*/
-    tcp::socket   _socket;
+    //tcp::socket   _socket;
 };

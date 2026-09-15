@@ -67,6 +67,12 @@ public:
 		this->_config_map = src._config_map;
 	}
 
+	static ConfigMgr& Inst() {
+		static ConfigMgr cfg_mgr;
+		return cfg_mgr;
+	}
+
+private:
 	//构造函数里实现config读取
 	ConfigMgr();
 

@@ -47,7 +47,7 @@ find_package(gRPC CONFIG REQUIRED)
 add_executable (${TARGET}   "src/const.h" "src/CServer.h" "src/HttpConnection.h" "src/LogicSystem.h" "src/Singleton.h" "src/CServer.cpp" "src/GitServer.cpp" "src/HttpConnection.cpp" 
 "src/LogicSystem.cpp"
 "message.pb.cc" "message.grpc.pb.cc"
- "src/VarifyGrpcClient.h" "src/ConfigMgr.h" "src/ConfigMgr.cpp")
+ "src/VarifyGrpcClient.h" "src/ConfigMgr.h" "src/ConfigMgr.cpp" "src/AsioIOServicePool.h" "src/AsioIOServicePool.cpp" "src/VarifyGrpcClient.cpp")
 
 #include <boost/beast/http.hpp>
 #include <boost/beast.hpp>

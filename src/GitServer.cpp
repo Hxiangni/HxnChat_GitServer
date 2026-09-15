@@ -8,6 +8,7 @@
 #include "const.h"
 #include "CServer.h"
 #include "ConfigMgr.h"
+#include "AsioIOServicePool.h"
 int main()
 {
 	// 关键：把控制台输出代码页设置为 UTF‑8
@@ -17,7 +18,7 @@ int main()
 	spdlog::set_level(spdlog::level::trace);
 	try
 	{
-		ConfigMgr gCfgMgr;
+		auto& gCfgMgr = ConfigMgr::Inst();
 		std::string gate_port_str = gCfgMgr["GateServer"]["Port"];
 		unsigned short gate_port = atoi(gate_port_str.c_str());
 		//字面量数字 8080 强制转换成 unsigned short 无符号短整型，再赋值给 port 变量。
@@ -34,6 +35,9 @@ int main()
 		  2.IO 事件监测内核接口：Linux 用 epoll，Windows 用 IOCP，macOS 用 kqueue；用来等待操作系统事件
 		  3.监视所有注册到它上面的 I/O 对象（socket、timer、signal 等），当某个对象"就绪"时，把对应的处理任务抛到队列里执行。
 		  4.可以有多个ioc,每个 io_context 都是完全独立的实例：各自拥有独立任务队列、独立的 IO 多路复用*/
+		
+		  // 【第 1 个 ioc】独立于线程池：专供 signal_set + acceptor（接收专用）
+		// 括号里的 1 是"并发提示"，意思是"我只会用 1 个线程跑它"（即 main 线程）
 		net::io_context ioc{ 1 };
 
 
@@ -86,3 +90,6 @@ int main()
 所以对于get请求带参数的情况我们要实现参数解析，我们可以自己实现简单的url解析函数
 */
 
+//一共三个ioc
+//两个连接管理收发
+//一个连接管理接收？

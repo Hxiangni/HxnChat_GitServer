@@ -1,9 +1,14 @@
 #pragma once
+#include "const.h"
 #include <grpcpp/grpcpp.h>
 #include "../message.pb.h"          // ← 先：消息类 GetVarifyReq / GetVarifyRsp
 #include "../message.grpc.pb.h"     // ← 后：服务类 VarifyService / Stub（依赖上面的消息）
-#include "const.h"
 #include "Singleton.h"
+#include <atomic>
+#include <queue>
+#include <mutex>
+#include <condition_variable>
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * message.pb.h 负责"数据"——请求长什么样、响应长什么样；
@@ -16,6 +21,32 @@ using grpc::ClientContext;  // 一次调用的上下文（可放超时、元数�
 using message::GetVarifyReq;// 请求类型
 using message::GetVarifyRsp;// 响应类型
 using message::VarifyService;// 服务类型
+
+
+class RPCConPool {
+public:
+    RPCConPool(size_t poolSize, std::string host, std::string port);
+    ~RPCConPool();
+    void Close();
+    std::unique_ptr<VarifyService::Stub> getConnection();
+    void returnConnection(std::unique_ptr<VarifyService::Stub> context);
+private:
+    size_t poolSize_;
+    std::string host_;
+    std::string port_;
+    //std::atomic<bool>保证bool本身读写是原子操作
+    std::atomic<bool> b_stop_;//标记是否回收
+    //用队列管理，线程不安全，可以用互斥锁实现线程安全
+    //队列管理指向Stub的智能指针
+    std::queue<std::unique_ptr<VarifyService::Stub>> connections_;
+    std::mutex mutex_;
+    //条件变量
+    std::condition_variable condition_variable_;
+    
+};
+
+
+
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
@@ -34,36 +65,15 @@ public:
     //然后用stub_->GetVarifyCode(&context, request, &reply);调用函数
     //status：是函数的返回值表示状态
     //gRPC 只是在收到服务器的响应后，把字节反序列化写进reply
-    GetVarifyRsp GetVarifyCode(std::string email) {
-        ClientContext context; //  本次调用的上下文（相当于"这通电话的会话记录"）
-        GetVarifyRsp reply;  //  准备一个空信封，等着装对方的回复
-        GetVarifyReq request; // 准备请求内容
-        request.set_email(email);//  把参数填进去（set_email 是 protobuf 生成的 setter）
-
-        //真正发起调用：这一行会【阻塞】，直到服务器返回
-        Status status = stub_->GetVarifyCode(&context, request, &reply);
-
-        if (status.ok()) {//status.ok() 只代表"传输成功"，不代表"业务成功"。
-
-            return reply;// 成功把服务器返回的数据交给调用方
-        }
-        else {
-            reply.set_error(ErrorCodes::RPCFailed);// 塞一个业务错误码
-            return reply;
-        }
-    }
+    GetVarifyRsp GetVarifyCode(std::string email);
 
 private:
-    VerifyGrpcClient() {
-        //建一条"通道"（Channel）
-        //InsecureChannelCredentials() = 不加密（明文 HTTP/2）只适合本机开发调试。生产环境要换成 SslCredentials(...) 之类。
-        //返回值类型是 std::shared_ptr<Channel>
-        std::shared_ptr<Channel> channel = grpc::CreateChannel("127.0.0.1:50051", grpc::InsecureChannelCredentials());
-        //用通道造一个"存根"（Stub）
-        //Stub 内部会把 channel 存一份（它得知道往哪发请求），所以传进去的 shared_ptr 被复制了一份，引用计数 +1。
-        stub_ = VarifyService::NewStub(channel);
-    }
+    VerifyGrpcClient();
 
-    //Stub 是"远程函数的本地替身"，让你像调本地函数一样调远程函数（设计模式里叫 Proxy / 代理模式）。
-    std::unique_ptr<VarifyService::Stub> stub_;
+    std::unique_ptr<RPCConPool> pool_;
 };
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+    * 1.Stub 是"远程函数的本地替身"，让你像调本地函数一样调远程函数（设计模式里叫 Proxy / 代理模式）。
+    * 2.因为 VerifyGrpcClient是单例所以stub_也只有一个，现在我们改成了多线程
+    *   但是我们只有一个stub_，多线程访问这唯一一个stub_会发生错误
+    * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */

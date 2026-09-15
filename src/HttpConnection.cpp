@@ -1,6 +1,7 @@
 #include "HttpConnection.h"
 #include "LogicSystem.h"
 std::string UrlDecode(const std::string& str);
+
 //tcp::socket只有移动构造和有参构造
 /*关于执行逻辑
  第 1 步：分配 HttpConnection 对象的原始内存
@@ -11,10 +12,18 @@ std::string UrlDecode(const std::string& str);
  第 3 步：执行构造函数初始化列表，构造成员 _socket（第二次移动构造）
  第 4 步：执行构造函数的函数体 {}
  第 5 步：构造函数返回，形参 socket 销毁
- */
-HttpConnection::HttpConnection(tcp::socket socket) :
+加入线程池子之前的版本
+HttpConnection::HttpConnection(tcp::socket& socket) :
 	_socket(std::move(socket))//移动构造
 {}
+*/
+
+//加入线程池之后的版本
+HttpConnection::HttpConnection(boost::asio::io_context& ioc) 
+	:_socket(ioc)
+{
+}
+
 
 //发起一次异步等待客户端发来 HTTP 请求，读完完整请求后自动调用业务处理函数。
 void HttpConnection::Start()
@@ -42,6 +51,11 @@ void HttpConnection::Start()
 					std::cout << "exception is " << exp.what() << std::endl;
 				}
 		});
+}
+
+tcp::socket& HttpConnection::GetSocket()
+{
+	return _socket;
 }
 
 void HttpConnection::HandleReq() {
