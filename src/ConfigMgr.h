@@ -33,13 +33,12 @@ struct  SectionInfo
 		// 这里可以添加一些边界检查  
 		return _section_datas[key];
 	}
-	//成员变量
+	//ini文件中段里面的key和value
 	std::map<std::string, std::string> _section_datas;
 };
 
 
-//定义ConfigMgr管理section和其包含的key与value
-
+//定义ConfigMgr管理section(其包含key与value)
 class ConfigMgr
 {
 public:
@@ -53,19 +52,8 @@ public:
 		return _config_map[section];
 	}
 
-
-	ConfigMgr& operator=(const ConfigMgr& src) {
-		if (&src == this) {
-			return *this;
-		}
-
-		this->_config_map = src._config_map;
-		return *this;
-	};
-
-	ConfigMgr(const ConfigMgr& src) {
-		this->_config_map = src._config_map;
-	}
+	ConfigMgr(const ConfigMgr& src) = delete;
+	ConfigMgr& operator=(const ConfigMgr& src) = delete;
 
 	static ConfigMgr& Inst() {
 		static ConfigMgr cfg_mgr;
@@ -75,9 +63,6 @@ public:
 private:
 	//构造函数里实现config读取
 	ConfigMgr();
-
-	//从指定目录读取配置文件的构造函数
-	//ConfigMgr(const std::string file_path);
-private:
+	//根据段名存放对应的段
 	std::map<std::string, SectionInfo> _config_map;
 };

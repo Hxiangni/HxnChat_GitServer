@@ -111,8 +111,6 @@ LogicSystem::LogicSystem() {
 
         GetVarifyRsp rsp = VerifyGrpcClient::GetInstance()->GetVarifyCode(email);
 
-        spdlog::info("email is {}", email);
-
         // ✅ 成功分支同样先清空body
         res.body().consume(res.body().size());
 

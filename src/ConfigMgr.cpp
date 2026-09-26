@@ -49,7 +49,6 @@ ConfigMgr::ConfigMgr() {
     * 
     * 
     * * * * * * * * * * * * * * * ** * * * * * * * * * * * * * * * * * * * */
-    
     // 遍历INI文件中的所有section  
     for (const auto& section_pair : pt) {
         const std::string& section_name = section_pair.first;
@@ -72,7 +71,7 @@ ConfigMgr::ConfigMgr() {
     for (const auto& section_entry : _config_map) {
         const std::string& section_name = section_entry.first;
         const SectionInfo& section_config = section_entry.second;
-        spdlog::debug("[{}]", section_name);
+        spdlog::debug("section_name is : [{}]", section_name);
         for (const auto& key_value_pair : section_config._section_datas) {
             spdlog::debug("{}={}", key_value_pair.first, key_value_pair.second);
         }

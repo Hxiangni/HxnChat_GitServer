@@ -20,10 +20,10 @@ public:
         return _instance;
     }
     void PrintAddress() {
-        std::cout << _instance.get() << std::endl;
+        spdlog::debug("{}",_instance.get());
     }
     ~Singleton() {
-        std::cout << "this is singleton destruct" << std::endl;
+        spdlog::debug("this is singleton destruct");
     }
 };
 

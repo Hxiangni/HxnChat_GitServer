@@ -30,6 +30,7 @@ void HttpConnection::Start()
 {
 	auto self = shared_from_this();
 
+	//异步等待读取_socket的http请求
 	http::async_read(_socket,
 		_buffer, // 存网络原始字节流
 		_request, // 存解析完成后的结构化 HTTP 请求信息

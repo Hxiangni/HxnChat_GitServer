@@ -9,6 +9,14 @@
 #include "CServer.h"
 #include "ConfigMgr.h"
 #include "AsioIOServicePool.h"
+
+
+#include "RedisHolder.h"
+//#include "RedisTest.h"       // 旧的裸 hiredis 测试，已被 TestRedisConPool 覆盖（保留作学习记录）
+#include "TestRedisMgr.h"      // RedisMgr（命令门面）测试
+#include "TestRedisConPool.h"  // 连接池测试
+
+
 int main()
 {
 	// 关键：把控制台输出代码页设置为 UTF‑8
@@ -18,6 +26,10 @@ int main()
 	spdlog::set_level(spdlog::level::trace);
 	try
 	{
+		//TestRedis();   // 在 Start 服务器之前调，先确认链路通
+
+
+
 		auto& gCfgMgr = ConfigMgr::Inst();
 		std::string gate_port_str = gCfgMgr["GateServer"]["Port"];
 		unsigned short gate_port = atoi(gate_port_str.c_str());
@@ -25,6 +37,12 @@ int main()
 		//和unsigned short port=8080;有什么区别？
 		unsigned short port = gate_port;
 
+
+		TestRedisMgr();   // 测试使用连接池的连接是否封装成功
+
+		const int failed = TestRedisConPool(); //测试连接池的功能是否正确
+
+		spdlog::info("TestRedisConPool: {} case(s) failed", failed);
 
 		/*oost.Asio 的 io_context 有两种构造：
 		 1.无参构造：io_context ioc;
@@ -71,6 +89,9 @@ int main()
 		//ioc.run() 是阻塞式事件循环，专门处理所有注册到 ioc 上的异步事件（信号、TCP 连接、HTTP 读写），只有收到停止信号才会返回。
 		//当ioc.run()执行后才会处理ioc上的异步任务，所以signals.async_wait传来的lambda回调任务一定要在ioc.run之后才会被处理！！！
 		ioc.run();
+
+		// 主动停机：把"清理"从不可控的静态析构期，提前到你能掌控的位置
+		RedisHolder::Shutdown();
 	}
 	catch (std::exception const& e)
 	{
@@ -79,17 +100,13 @@ int main()
 	}
 }
 /*
-启动服务器，在浏览器输入`http://localhost:8080/get_test`
+启动服务器，在浏览器输入`http://localhost:8000/get_test`
 
 会看到服务器回包`receive get_test req`
 
-如果我们输入带参数的url请求`http://localhost:8080/get_test?key1=value1&key2=value2`
+如果我们输入带参数的url请求`http://localhost:8000/get_test?key1=value1&key2=value2`
 
 会收到服务器反馈`url not found`
 
 所以对于get请求带参数的情况我们要实现参数解析，我们可以自己实现简单的url解析函数
 */
-
-//一共三个ioc
-//两个连接管理收发
-//一个连接管理接收？

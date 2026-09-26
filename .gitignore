@@ -10,6 +10,9 @@ out/
 *.vcxproj.user
 *.sln
 CMakeUserPresets.json
+#编辑器
+.vscode/
+.idea/
 
 # 编译产物（GitServer 的 exe/pdb 会输出到源码根目录）
 *.exe
@@ -23,3 +26,7 @@ CMakeUserPresets.json
 # 系统文件
 .DS_Store
 Thumbs.db
+
+# CMake 缓存
+CMakeCache.txt
+CMakeFiles/

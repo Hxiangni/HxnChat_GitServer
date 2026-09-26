@@ -1,5 +1,6 @@
 #include "VarifyGrpcClient.h"
 #include "ConfigMgr.h"
+#include <spdlog/spdlog.h>
 RPCConPool::RPCConPool(size_t poolSize, std::string host, std::string port)
 	:poolSize_(poolSize), host_(host), port_(port),b_stop_(false)
 {
@@ -99,15 +100,27 @@ GetVarifyRsp VerifyGrpcClient::GetVarifyCode(std::string email)
     //真正发起调用：这一行会【阻塞】，直到服务器返回
     Status status = stub->GetVarifyCode(&context, request, &reply);
 
-    if (status.ok()) {//status.ok() 只代表"传输成功"，不代表"业务成功"。
+     if (!status.ok()) {
+        // ① 传输层失败：网络断了 / VarifyServer 没启动 / 超时
+        //    status.error_message() 带着具体原因，一定要打出来
+        spdlog::error("rpc call failed, email is {}, err msg is {}",
+                      email, status.error_message());
         pool_->returnConnection(std::move(stub));
-        return reply;// 成功把服务器返回的数据交给调用方
-    }
-    else {
-        pool_->returnConnection(std::move(stub));
-        reply.set_error(ErrorCodes::RPCFailed);// 塞一个业务错误码
+        reply.set_error(ErrorCodes::RPCFailed);
         return reply;
     }
+
+    // ② 传输成功，看业务结果（VarifyServer 塞在回包里的 error 码）
+    if (reply.error() != ErrorCodes::Success) {
+        spdlog::error("send verify code failed, email is {}, error code is {}",
+                      email, reply.error());
+    }
+    else {
+        spdlog::info("send verify code success, email is {}", reply.email());
+    }
+
+    pool_->returnConnection(std::move(stub));
+    return reply;
 }
 
 VerifyGrpcClient::VerifyGrpcClient()
