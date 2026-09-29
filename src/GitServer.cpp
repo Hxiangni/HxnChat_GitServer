@@ -31,18 +31,21 @@ int main()
 
 
 		auto& gCfgMgr = ConfigMgr::Inst();
+
 		std::string gate_port_str = gCfgMgr["GateServer"]["Port"];
+
+
 		unsigned short gate_port = atoi(gate_port_str.c_str());
 		//字面量数字 8080 强制转换成 unsigned short 无符号短整型，再赋值给 port 变量。
 		//和unsigned short port=8080;有什么区别？
 		unsigned short port = gate_port;
 
 
-		TestRedisMgr();   // 测试使用连接池的连接是否封装成功
+		//TestRedisMgr();   // 测试使用连接池的连接是否封装成功
 
-		const int failed = TestRedisConPool(); //测试连接池的功能是否正确
+		//const int failed = TestRedisConPool(); //测试连接池的功能是否正确
 
-		spdlog::info("TestRedisConPool: {} case(s) failed", failed);
+		//spdlog::info("TestRedisConPool: {} case(s) failed", failed);
 
 		/*oost.Asio 的 io_context 有两种构造：
 		 1.无参构造：io_context ioc;
